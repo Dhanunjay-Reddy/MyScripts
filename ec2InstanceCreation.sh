@@ -29,8 +29,15 @@ get_subnet_options() {
 
 # Function to fetch and display options for security groups in the specified region
 get_security_group_options() {
-  aws ec2 describe-security-groups --query 'SecurityGroups[*].[GroupId, GroupName, VpcId, Region]' --output table --region "$1"
+  aws ec2 describe-security-groups --query 'SecurityGroups[*].[GroupId, GroupName, VpcId, AvailabilityZone]' --output table --region "$1"
 }
+
+# Function to display AWS EC2 images (AWS EC2 Images)
+display_ami_options() {
+  echo "Fetching available Top 20 AMIs. Please wait..."
+  aws ec2 describe-images --owners self amazon --query 'Images[0:25].[ImageId, Name]' --output table --region "$1"
+}
+
 
 # Function to fetch and display options for key pairs
 get_key_pair_options() {
@@ -76,7 +83,7 @@ add_custom_rule() {
 # Function to create an EC2 instance
 create_ec2_instance() {
   # Prompt for AWS region
-  aws_region=$(prompt_user "Enter AWS region")
+  aws_region=$(prompt_user "Enter AWS region (ap-south-1)")
 
   # Display and prompt for subnet options
   echo "Subnet Options:"
@@ -87,7 +94,8 @@ create_ec2_instance() {
   # Display and prompt for security group options
   echo "Security Group Options:"
   get_security_group_options "$aws_region"
-  read -p "Enter the Security Group ID: " security_group_id
+  echo -e  "\n *** Make Sure Both Subnet ID and Security Grop ID Have Same VPC ID   *** \n"
+  read -p "Enter the Security Group ID : " security_group_id
   sg_vpc_id=$(aws ec2 describe-security-groups --group-ids "$security_group_id" --query 'SecurityGroups[0].VpcId' --output text --region "$aws_region")
 
   # Check if subnet and security group are in the same VPC
@@ -139,7 +147,10 @@ create_ec2_instance() {
   instance_name=$(prompt_user "Enter a name for the instance")
 
   # Prompt for AMI ID
-  ami_id=$(prompt_user "Enter AMI ID")
+    # Prompt for AMI ID
+  echo "AMI Options:"
+  display_ami_options "$aws_region"
+  read -p "Enter AMI ID: " ami_id
 
   # Prompt for instance type
   instance_type=$(prompt_user "Enter instance type (e.g., t2.micro)")
